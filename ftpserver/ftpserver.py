@@ -10,6 +10,8 @@ ch = logging.StreamHandler()
 fh = logging.FileHandler(filename="myftpserver.log", encoding='utf-8')
 ch.setFormatter(LogFormatter())
 fh.setFormatter(LogFormatter())
+logger.addHandler(ch)
+logger.addHandler(fh)
 
 authorizer = DummyAuthorizer()
 authorizer.add_user("xwp", "xwp12138", "d:/", perm="elradfmwM")
