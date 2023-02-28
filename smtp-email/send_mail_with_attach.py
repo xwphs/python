@@ -6,7 +6,7 @@ from email.header import Header
 
 mail_host = "smtp.qq.com"
 mail_user = "1391578633"
-mail_pass = "oktnepvzomzdfhje"
+mail_pass = "oktnepmzdfhje"
 sender = "1391578633@qq.com"
 receiver = ["1391578633@qq.com", "1497953433@qq.com"]
 message = MIMEMultipart()
