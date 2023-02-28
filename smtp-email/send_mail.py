@@ -3,7 +3,7 @@ import smtplib
 from email.mime.text import MIMEText
 mail_host = "smtp.qq.com"
 mail_user = "1391578633"
-mail_pass = "oktnepvzomzdfhje"
+mail_pass = "okzomzdfhje"
 sender = "1391578633@qq.com"
 receivers = ["1391578633@qq.com", "1497953433@qq.com"]
 message = MIMEText("This is a test title", "plain", "utf-8")
