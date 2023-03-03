@@ -9,6 +9,8 @@ def worker(event, name):
 
 if __name__ == "__main__":     
     event = multiprocessing.Event()
+    # event has an bool value, default is False. event.clear() set value False, event.set() set value True.
+    # when value is True, event.wait() not block!
     for i in range(1,3):
         multiprocessing.Process(target=worker, args=(event, i)).start()
     time.sleep(5)
