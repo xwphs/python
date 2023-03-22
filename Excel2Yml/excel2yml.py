@@ -3,6 +3,7 @@ from openpyxl.utils import get_column_letter
 import ruamel.yaml
 import sys
 import os
+import logging
 
 strstr = r"""
 - service: kerberos
@@ -19,7 +20,6 @@ strstr = r"""
       local_realm: "BDMS.COM"
     krb:
       domain_realm_maps: "{\"BDMS.COM\":[\"bdms.com\",\".bdms.com\"]}"
-
 - service: ldap
   componentList:
     - component: server
@@ -29,13 +29,11 @@ strstr = r"""
   configList:
     slapd-init.ldif:
       ldap_domain: "bdms.com"
-
 # MySQL当前仅支持Centos7和RedHat7系统，且只能用于POC项目
 - service: mysql
   componentList:
     - component: server
       hostList: ["node1.local"]
-
 - service: easy_ranger
   componentList:
     - component: admin
@@ -43,7 +41,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_MEM_OPTS": "-XX:MetaspaceSize=100m -XX:MaxMetaspaceSize=200m -Xmx3g -Xms3g"
-
 - service: zookeeper
   componentList:
     - component: server
@@ -54,7 +51,6 @@ strstr = r"""
   configList:
     env:
       JAVA_OPTS: "-server -Xmx3g -Xms3g -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=3 -XX:GCLogFileSize=512M"  
-
 - service: kafka
   componentList:
     - component: manager
@@ -67,7 +63,6 @@ strstr = r"""
       heap_args: "-Xmx3g -Xms3g"
     manager:
       manager_heap_args: "-J-Xms1g -J-Xmx1g"  
-
 - service: elasticsearch
   componentList:
     - component: master
@@ -79,18 +74,15 @@ strstr = r"""
       jvm_heap_size: "4g"
     master_jvm:
       jvm_heap_size: "1g"
-
 - service: neo4j
   componentList:
     - component: server
       hostList: ["xinode2.local", "xinode3.local", "xinode4.local"]
-
 # -----------------Nginx和Ningx_HA二选一，正式环境必须用Ningx_HA-----------------
 - service: nginx
   componentList:
     - component: server
       hostList: ["node2.local"]
-
 - service: nginx_ha
   componentList:
     - component: server
@@ -98,7 +90,6 @@ strstr = r"""
   configList:
     keepalived_common:
       default_virtual_ip_address: "<vip地址>"
-
 - service: hdfs
   componentList:
     # zkfc 必须和 namenode 在相同机器
@@ -113,7 +104,6 @@ strstr = r"""
     - component: client
       # 所有机器都安装client
       hostList: ["*"]
-
 - service: yarn
   componentList:
     - component: client
@@ -131,7 +121,6 @@ strstr = r"""
     yarn_env:
       "YARN_RESOURCEMANAGER_HEAPSIZE": "8192"
       "YARN_NODEMANAGER_HEAPSIZE": "4096"
-
 - service: knox
   componentList:
     - component: server
@@ -155,7 +144,6 @@ strstr = r"""
       "hive_metastore_jvm_opts": "-Xmx12g -Xms12g -XX:PermSize=512m -XX:+UseConcMarkSweepGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M -XX:+HeapDumpOnOutOfMemoryError"  
     hiveserver:
       "hive_hiveserver_jvm_opts": "-Xmx18g -Xms18g -Xmn6000m -XX:MaxNewSize=6000m -XX:PermSize=2G -XX:+UseConcMarkSweepGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M"
-
 - service: impala
   componentList:
     - component: client
@@ -167,7 +155,6 @@ strstr = r"""
       hostList: ["node3.local"]
     - component: impalad
       hostList: ["node4.local"]
-
 - service: spark2
   componentList:
     - component: client
@@ -175,12 +162,10 @@ strstr = r"""
       hostList: ["*"]
     - component: jobhistoryserver
       hostList: ["node4.local"]
-
 - service: kyuubi
   componentList:
     - component: service
       hostList: ["xinode2.local", "xinode3.local"]
-
 - service: hbase
   componentList:
     - component: client
@@ -195,7 +180,6 @@ strstr = r"""
   configList:
     env: 
       "HBASE_MASTER_HEAPSIZE": "2g"
-
 - service: redis_sentinel
   componentList:
     - component: server
@@ -204,7 +188,6 @@ strstr = r"""
       hostList: ["xinode2.local","xinode3.local"]
     - component: sentinel
       hostList: ["xinode2.local","xinode3.local","xinode4.local"]
-
 - service: hadoop_meta
   componentList:
     - component: service
@@ -215,7 +198,6 @@ strstr = r"""
     # 需要部署在kerberos的master节点, 且要安装hdfs-client，仅支持单点部署
     - component: kdc
       hostList: ["xinode2.local"]
-
 # 当前仅支持单点部署
 - service: meta_service
   componentList:
@@ -224,7 +206,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-Xmx512M -Xms512M -server"
-
 - service: easyeagle
   componentList:
     # 仅支持单点安装 backend
@@ -236,7 +217,6 @@ strstr = r"""
   - component: collector
     # 选择default_yarn实例下所有装有yarn nodemanager组件的节点;如果没有defalt_yarn，请咨询部署开发
     hostList: ["xinode5.local","xinode6.local", "xinode7.local", "xinode8.local"]
-
 - service: bdms_meta
   componentList:
     - component: server
@@ -244,7 +224,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-Xms512M -Xmx512M -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
-
 - service: mammut
   componentList:
     - component: executor
@@ -256,7 +235,6 @@ strstr = r"""
       "JAVA_OPTS": "-Xmx1g -Xms1g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
     webserver:
       "JAVA_OPTS": "-Xmx1g -Xms1g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
-
 - service: azkaban
   componentList:
     - component: exec
@@ -274,13 +252,11 @@ strstr = r"""
       "AZKABAN_OPTS": "-Xmx3G -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"    
     web:
       "AZKABAN_OPTS": "-Xmx3G -Xms3G -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"
-
 - service: easy_account
   version: 3.7.5.4
   componentList:
     - component: server
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_alert
   componentList:
     - component: server
@@ -288,14 +264,12 @@ strstr = r"""
   configList:
     env:
       JAVA_OPTS: "-server -Xmx1g -Xms1g -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
-
 - service: easy_console
   componentList:
     - component: backend
       hostList: ["xinode1.local", "xinode2.local"]
     - component: frontend
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_webmaster
   componentList:
     - component: frontend
@@ -304,17 +278,14 @@ strstr = r"""
     nginx:
       # nginx 单点模式通过nginx ip 地址访问，nginx_ha默认是通过vip地址访问，可指定域名
       nginx_server_name: "http://<IP或域名>:11062"
-
 - service: easy_aac
   componentList:
     - component: server
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_ddl
   componentList:
     - component: server
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_access
   componentList:
     - component: backend
@@ -327,7 +298,6 @@ strstr = r"""
   configList:
     env:
       JAVA_OPTS: "-Xmx8G -Xms8G -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M -XX:ParallelGCThreads=35 -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+UseCMSInitiatingOccupancyOnly  -XX:+ParallelRefProcEnabled -XX:+PrintHeapAtGC -XX:NewSize=4g -XX:MaxNewSize=4g" 
-
 - service: easy_metahub
   componentList:
     - component: backend
@@ -335,7 +305,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-server -Xmx4g -Xms4g -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"
-
 - service: easy_transfer
   componentList:
     - component: backend
@@ -348,14 +317,12 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-server -Xmx1g -Xms1g -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -XX:+PrintTenuringDistribution -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"   
-
 - service: easy_dmap
   componentList:
     - component: backend
       hostList: ["xinode1.local", "xinode2.local"]
     - component: frontend
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_coop
   version: 1.2.2.5.1
   componentList:
@@ -366,7 +333,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-Xms512m -Xmx512m -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
-
 - service: easy_flow
   componentList:
     - component: backend
@@ -375,7 +341,6 @@ strstr = r"""
       hostList: ["xinode1.local", "xinode2.local"]
     - component: engine
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_static
   componentList:
     - component: frontend
@@ -394,12 +359,10 @@ strstr = r"""
       hostList: ["xinode1.local", "xinode2.local"]
     - component: frontend
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_metaweb
   componentList:
     - component: frontend
       hostList: ["xinode1.local", "xinode2.local"]
-
 - service: easy_openapi
   componentList:
     - component: backend
@@ -407,7 +370,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-Xmx1g -Xms1g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M" 
-
 - service: easy_taskops
   componentList:
     - component: backend
@@ -417,7 +379,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-server -Xmx4g -Xms4g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"
-
 - service: easy_qa
   componentList:
     - component: backend
@@ -427,7 +388,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-server -Xmx512m -Xms512m -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
-
 - service: easy_design
   componentList:
     - component: backend
@@ -437,7 +397,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-server -Xmx1g -Xms1g -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M" 
-
 - service: easy_index
   componentList:
     - component: backend
@@ -447,7 +406,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-Xms1g -Xmx1g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M" 
-
 - service: easy_tag
   componentList:
     - component: backend
@@ -457,7 +415,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-Xms1g -Xmx1g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"
-
 - service: easy_dqc
   componentList:
     - component: backend
@@ -470,7 +427,6 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-server -Xms1g -Xmx1g -XX:MaxPermSize=128m -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"
-
 - service: easy_test
   componentList:
     - component: backend
@@ -483,15 +439,12 @@ strstr = r"""
   configList:
     env:
       "JAVA_OPTS": "-server -Xmx512m -Xms512m -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -XX:+PrintTenuringDistribution -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M" 
-
 - service: easy_standard
   componentList:
     - component: backend
       hostList: ["xinode1.local", "xinode2.local"]
     - component: frontend
       hostList: ["xinode1.local", "xinode2.local"]
-
-
 # -----------------数据服务-----------------
 - service: kong
   componentList:
@@ -502,7 +455,6 @@ strstr = r"""
     - component: konga
       # 仅支持单点部署
       hostList: ["xinode3.local"]
-
 - service: easy_dataservice
   componentList:
     - component: backend
@@ -520,8 +472,6 @@ strstr = r"""
     env:
       "JAVA_OPTS": "-server -Xmx1g -Xms1g -XX:SurvivorRatio=8 -Xss256k -XX:PermSize=128m -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxTenuringThreshold=15 -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSCompactAtFullCollection -XX:+CMSClassUnloadingEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -XX:-DisableExplicitGC -XX:+UnlockDiagnosticVMOptions -XX:ParGCCardsPerStrideChunk=4096 -XX:-UseBiasedLocking -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"
 # -----------------数据服务-----------------
-
-
 # -----------------数据资产-----------------
 - service: meta_worker
   componentList:
@@ -532,7 +482,6 @@ strstr = r"""
   configList:
     env:
       "META_WORKER_HEAPSIZE": "-Xmx4g -Xms4g -Xmn2g"  
-
 - service: smilodon_fsimage_audit
   componentList:
     - component: fsimage_oiv
@@ -544,8 +493,6 @@ strstr = r"""
       # 部署在 HDFS NameNode 节点
       hostList: ["xinode3.local", "xinode4.local"]
 # -----------------数据资产-----------------
-
-
 # -----------------实时组件-----------------
 - service: ds_agent
   componentList:
@@ -555,19 +502,16 @@ strstr = r"""
   configList:
     ds_agent:
       "agent_jvm_conf": "-Xms256m -Xmx256m"  
-
 - service: grafana
   componentList:
     - component: server
       hostList: ["xinode1.local"]
-
 - service: ntsdb
   componentList:
     - component: master
       hostList: ["xinode2.local", "xinode3.local", "xinode4.local"]
     - component: shardserver
       hostList: ["xinode2.local", "xinode3.local", "xinode4.local"]
-
 - service: logstash
   componentList:
     - component: server
@@ -576,7 +520,6 @@ strstr = r"""
     env:
       Xms: "1g"
       Xmx: "1g"  
-
 - service: realtime_debugger
   componentList:
     - component: plugin_server
@@ -594,7 +537,6 @@ strstr = r"""
   configList:
     plugin_server:
       "java_opts": "-Xms1g -Xmx1g" 
-
 - service: realtime_monitor
   componentList:
     - component: monitor
@@ -602,7 +544,6 @@ strstr = r"""
   configList:
     monitor:
       "java_opts": "-Xms2g -Xmx2g" 
-
 - service: realtime_ops
   componentList:
     - component: ops
@@ -612,7 +553,6 @@ strstr = r"""
   configList:
     ops:
       "java_opts": "-Xms1g -Xmx1g" 
-
 - service: realtime_portal
   componentList:
     - component: portal
@@ -620,7 +560,6 @@ strstr = r"""
   configList:
     portal:
       "java_opts": "-Xms1g -Xmx1g"
-
 - service: realtime_submitter
   componentList:
     - component: submitter
@@ -638,7 +577,6 @@ strstr = r"""
   configList:
     submitter:
       "java_opts": "-Xms2g -Xmx2g"
-
 - id: ne-flink-1.10.0
   name: ne-flink-1.10.0
   service: flink
@@ -646,7 +584,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: ne-flink-1.12.4
   name: ne-flink-1.12.4
   service: flink
@@ -654,7 +591,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: ne-flink-1.13.3
   name: ne-flink-1.13.3
   service: flink
@@ -662,7 +598,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: ne-flink-1.14.0
   name: ne-flink-1.14.0
   service: flink
@@ -670,7 +605,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: plugin_cdc_ne-flink-1.13.3
   name: plugin_cdc_ne-flink-1.13.3
   service: flink_plugin
@@ -678,7 +612,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: plugin_ne-flink-1.10.0
   name: plugin_ne-flink-1.10.0
   service: flink_plugin
@@ -686,7 +619,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: plugin_ne-flink-1.12.4
   name: plugin_ne-flink-1.12.4
   service: flink_plugin
@@ -694,7 +626,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: plugin_ne-flink-1.14.0
   name: plugin_ne-flink-1.14.0
   service: flink_plugin
@@ -702,7 +633,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - id: ndi_ne-flink-1.13.3
   name: ndi_ne-flink-1.13.3
   service: flink_plugin
@@ -710,7 +640,6 @@ strstr = r"""
   componentList:
     - component: client
       hostList: ["xinode1.local","xinode2.local"]
-
 - service: sloth
   componentList:
     - component: server
@@ -761,7 +690,10 @@ if 'sloth' in services and 'flink' not in services:
     services.append('flinkplugin')
 for row_num in range(4, maxR + 1):
     hostname = ws.cell(row=row_num, column=3).value
-    hostnames.append(hostname.strip())
+    try:
+        hostnames.append(hostname.strip(" "))
+    except AttributeError as e:
+        logging.exception(e)
 # print(hostnames)
 
 
