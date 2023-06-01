@@ -253,9 +253,9 @@ strstr = r"""
       hostList: ["xinode1.local", "xinode2.local"]
   configList:
     executor: 
-      "JAVA_OPTS": "-Xmx1g -Xms1g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
+      "JAVA_OPTS": "-Xmx3g -Xms3g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
     webserver:
-      "JAVA_OPTS": "-Xmx1g -Xms1g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
+      "JAVA_OPTS": "-Xmx3g -Xms3g -verbose:gc -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+PrintGCDetails -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOGS_DIR/ -Xloggc:$LOGS_DIR/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=3M"  
 
 - service: azkaban
   componentList:
@@ -637,7 +637,7 @@ strstr = r"""
     - ndi_ne-flink-1.13.3
   configList:
     submitter:
-      "java_opts": "-Xms2g -Xmx2g"
+      "java_opts": "-Xms4g -Xmx4g"
 
 - id: ne-flink-1.10.0
   name: ne-flink-1.10.0
@@ -729,7 +729,7 @@ strstr = r"""
     - ndi_ne-flink-1.13.3
   configList:
     server:
-      "java_opts": "-Xms2g -Xmx2g" """
+      "java_opts": "-Xms4g -Xmx4g" """
 
 def first_sheet(wb):
     return wb[wb.sheetnames[0]]
@@ -744,13 +744,17 @@ Usage: excel2yml.exe <Excel_file> [vip_address] [domain_name]''')
   sys.exit(0)
 
 # first arguments is xlsx file name
-xlsx_file = sys.argv[1]
+xlsx_file = ""
 virtual_ip = ""
 domain_name = ""
-if arg_len == 2:
+if arg_len == 1:
+  xlsx_file = sys.argv[1]
+elif arg_len == 2:
+  xlsx_file = sys.argv[1]
   virtual_ip = sys.argv[2]
   domain_name = virtual_ip
 elif arg_len == 3:
+  xlsx_file = sys.argv[1]
   virtual_ip = sys.argv[2]
   domain_name = sys.argv[3]
 else:
@@ -825,6 +829,7 @@ frontend = ['easywebmaster', 'easyconsole', 'easyaccess', 'easydmap', 'easytrans
 backend = ['easyconsole', 'easyaccess', 'easydmap', 'easytransfer', 'easymetahub', 'easycoop', 'easyopenapi', 'easytaskops', 'easydqc', 'easydesign', 'easydataservice', 'easyindex', 'easystandard', 'easyflow', 'easysubmit', 'easyudf', 'easyqa', 'easytag', 'easytest']
 sloth_flink = []
 nodem_coll = []
+# print(maxR, maxC)
 for col_num in range(6, maxC + 1):
     comp_dict = {}
     for row_num in range(4, maxR + 1):
